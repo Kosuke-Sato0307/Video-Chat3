@@ -55,6 +55,10 @@
 
 **重要なルール**: グレア（衝突）回避のため、**新規参加者(自分)が既存メンバー全員へ offer を送る**側になります（`welcome` の `peers` をループ）。既存メンバーは offer を待つだけです。
 
+補足: WebRTC 接続前に `GET /api/ice`（HTTP）で ICE サーバー一覧を取得する。公開 STUN ＋
+Cloudflare Realtime TURN の**短命認証情報**を返す（`src/index.ts` の `buildIceServers`）。
+TURN の認証は環境変数 `TURN_TOKEN_ID` / `TURN_API_TOKEN`（未設定なら STUN のみ）。詳細は `docs/deploy.md`。
+
 ## 開発コマンド
 
 ```bash
@@ -76,7 +80,9 @@ GitHub と Cloudflare Workers は **連携済み**。designated ブランチへ 
 
 - **最大人数を変える**: `src/room.ts` の `MAX_PEERS` と `public/app.js` の `MAX_PEERS`、
   `public/style.css` のグリッド定義（`.grid[data-count="..."]`）を合わせて変更。
-- **STUN/TURN を変える**: `public/app.js` の `ICE_SERVERS`。
+- **STUN/TURN を変える**: ICE 設定は `src/index.ts` の `buildIceServers`（`/api/ice`）が発行。
+  TURN は環境変数 `TURN_TOKEN_ID` / `TURN_API_TOKEN`（Cloudflare Realtime）。フォールバックの
+  公開 STUN は `src/index.ts` の `PUBLIC_STUN` と `public/app.js` の `ICE_SERVERS`。
 - **UI テーマ**: `public/style.css` 冒頭の CSS 変数（`--accent` など）。
 - **レイアウト（人数別）**: `public/style.css` の `.grid[data-count]` と portrait 用メディアクエリ。
 

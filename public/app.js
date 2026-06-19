@@ -6,12 +6,16 @@
  * - 新規参加者(自分)が既存メンバーへ offer を送る側になることでグレアを回避する。
  */
 
+// 公開 STUN（/api/ice の取得に失敗したときのフォールバック）。
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
 ];
 
 const MAX_PEERS = 4;
+
+// 実際に使う ICE サーバー。参加時に /api/ice（公開 STUN ＋ TURN）で差し替える。
+let iceServers = ICE_SERVERS;
 
 // DOM
 const lobby = document.getElementById("lobby");
@@ -55,8 +59,25 @@ joinForm.addEventListener("submit", async (e) => {
   // 自分のタイルを表示
   addTile(selfTileId(), localStream, true);
 
+  // ICE サーバー（公開 STUN ＋ TURN）を取得してから接続する。
+  await fetchIceServers();
+
   connect(passphrase);
 });
+
+/** Worker の /api/ice から ICE サーバー一覧を取得する。失敗時は公開 STUN のまま。 */
+async function fetchIceServers() {
+  try {
+    const res = await fetch("/api/ice", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.iceServers) && data.iceServers.length > 0) {
+      iceServers = data.iceServers;
+    }
+  } catch {
+    // 取得失敗時はフォールバックの公開 STUN を使う。
+  }
+}
 
 function connect(passphrase) {
   const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -125,8 +146,10 @@ async function handleSignal(msg) {
 
 /* ============ ピア接続 ============ */
 function createPeer(peerId) {
-  const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-  const entry = { pc, pendingCandidates: [] };
+  const pc = new RTCPeerConnection({ iceServers });
+  // isInitiator: 自分が offer を出した側か（ICE 再起動は発信側のみが行う）。
+  // iceRestarted: 一度だけ ICE 再起動を試みたか。
+  const entry = { pc, pendingCandidates: [], isInitiator: false, iceRestarted: false, removeTimer: null };
   peers.set(peerId, entry);
 
   // ローカルトラックを送出
@@ -147,7 +170,24 @@ function createPeer(peerId) {
   });
 
   pc.addEventListener("connectionstatechange", () => {
-    if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+    const st = pc.connectionState;
+    if (st === "connected") {
+      // 回復したら保留中の削除タイマーを解除する。
+      if (entry.removeTimer) {
+        clearTimeout(entry.removeTimer);
+        entry.removeTimer = null;
+      }
+    } else if (st === "failed") {
+      // 瞬断・候補遅延での一時的な failed に備え、発信側は一度だけ ICE 再起動を試みる。
+      if (entry.isInitiator && !entry.iceRestarted) {
+        entry.iceRestarted = true;
+        restartIce(peerId);
+      }
+      // 一定時間内に回復しなければ（再起動の相手側も含め）タイルを撤去する。
+      if (!entry.removeTimer) {
+        entry.removeTimer = setTimeout(() => removePeer(peerId), 8000);
+      }
+    } else if (st === "closed") {
       removePeer(peerId);
     }
   });
@@ -156,10 +196,24 @@ function createPeer(peerId) {
 }
 
 async function createOffer(peerId) {
-  const { pc } = createPeer(peerId);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
+  const entry = createPeer(peerId);
+  entry.isInitiator = true;
+  const offer = await entry.pc.createOffer();
+  await entry.pc.setLocalDescription(offer);
   send({ type: "offer", to: peerId, data: offer });
+}
+
+/** 接続が failed になった発信側が ICE を再起動して再ネゴシエーションする。 */
+async function restartIce(peerId) {
+  const entry = peers.get(peerId);
+  if (!entry) return;
+  try {
+    const offer = await entry.pc.createOffer({ iceRestart: true });
+    await entry.pc.setLocalDescription(offer);
+    send({ type: "offer", to: peerId, data: offer });
+  } catch {
+    removePeer(peerId);
+  }
 }
 
 async function handleOffer(peerId, offer) {
@@ -209,6 +263,7 @@ async function flushCandidates(peerId) {
 function removePeer(peerId) {
   const entry = peers.get(peerId);
   if (entry) {
+    if (entry.removeTimer) clearTimeout(entry.removeTimer);
     try {
       entry.pc.close();
     } catch {}

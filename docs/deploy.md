@@ -51,6 +51,41 @@ npx wrangler login   # 初回のみ
 npm run deploy       # wrangler deploy
 ```
 
+## TURN（Cloudflare Realtime）の設定
+
+公開 STUN だけでは、対称型 NAT や社内ネットワーク（同じ Wi-Fi/LAN を含む）で P2P 接続が
+確立できず、相手の映像が真っ暗のまま消えたり音声が届かないことがある。これを解消するため
+**Cloudflare Realtime TURN**（無料）を利用する。Worker が `/api/ice` で短命の TURN 認証情報を
+発行し、API トークンはクライアントに渡さず Worker 側に隠蔽する。
+
+### 1. TURN Token を作成
+
+Cloudflare ダッシュボード → **Realtime → TURN** で TURN アプリ(キー)を作成し、
+`TURN Token ID` と `API Token`（キー）を控える。
+
+### 2. Worker に認証情報を設定
+
+- **自動デプロイ（GitHub 連携）**: Workers プロジェクト → **Settings → Variables and Secrets**
+  に以下を Secret として登録する。
+  - `TURN_TOKEN_ID`
+  - `TURN_API_TOKEN`
+- **手動デプロイ**: 次のコマンドで登録する。
+
+  ```bash
+  npx wrangler secret put TURN_TOKEN_ID
+  npx wrangler secret put TURN_API_TOKEN
+  ```
+
+- **ローカル開発（`wrangler dev`）**: プロジェクト直下に `.dev.vars` を作成（**コミット禁止**）。
+
+  ```
+  TURN_TOKEN_ID=xxxxxxxx
+  TURN_API_TOKEN=xxxxxxxx
+  ```
+
+> 未設定でもアプリは動く（公開 STUN のみにフォールバック）。その場合、社内ネットワーク等では
+> 接続できないことがある。`/api/ice` を開くと、実際に返る ICE サーバー一覧を確認できる。
+
 ## 無料プランの制約（重要）
 
 - **Durable Objects は SQLite バックエンドのみ**利用可能。本リポジトリの
@@ -65,6 +100,6 @@ npm run deploy       # wrangler deploy
 | 症状 | 対処 |
 | --- | --- |
 | カメラ／マイクが使えない | `https` か `localhost` でアクセスしているか確認。ブラウザの権限を許可 |
-| 相手の映像が出ない | 公開 STUN だけでは繋がらない NAT 環境の可能性。`app.js` の `ICE_SERVERS` に TURN を追加 |
+| 相手の映像が出ない／真っ暗で消える | 公開 STUN だけでは繋がらない NAT 環境の可能性。上記「TURN（Cloudflare Realtime）の設定」で `TURN_TOKEN_ID` / `TURN_API_TOKEN` を設定する。`/api/ice` に `turn:`/`turns:` が含まれるか確認 |
 | `room-full` になる | ルームは4人まで。別の合言葉を使う |
 | デプロイで DO エラー | `wrangler.jsonc` の migration が `new_sqlite_classes` になっているか確認 |
