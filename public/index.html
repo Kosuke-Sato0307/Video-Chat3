@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0b1f3a" />
+    <title>Video Chat 3</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <!-- ロビー画面：合言葉を入力して参加 -->
+    <section id="lobby" class="screen lobby">
+      <div class="lobby-card">
+        <div class="logo">
+          <span class="logo-mark">◆</span>
+          <h1>Video Chat</h1>
+        </div>
+        <p class="lobby-desc">同じ合言葉を入れた人どうしが、1つのルームに集まれます（最大4人）。</p>
+        <form id="join-form" autocomplete="off">
+          <input
+            id="passphrase"
+            type="text"
+            inputmode="text"
+            placeholder="合言葉を入力"
+            maxlength="64"
+            required
+          />
+          <button id="join-btn" type="submit">参加する</button>
+        </form>
+        <p id="lobby-error" class="error" hidden></p>
+      </div>
+    </section>
+
+    <!-- 通話画面：ビデオグリッド＋コントロール -->
+    <section id="call" class="screen call" hidden>
+      <div id="grid" class="grid" data-count="1"></div>
+      <div class="controls">
+        <button id="toggle-mic" class="ctrl" title="マイク" aria-label="マイク切替">
+          <span class="ico mic-on">🎤</span>
+        </button>
+        <button id="toggle-cam" class="ctrl" title="カメラ" aria-label="カメラ切替">
+          <span class="ico cam-on">📷</span>
+        </button>
+        <button id="leave-btn" class="ctrl danger" title="退出" aria-label="退出">
+          <span class="ico">📞</span>
+        </button>
+      </div>
+      <div id="room-badge" class="room-badge"></div>
+    </section>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
