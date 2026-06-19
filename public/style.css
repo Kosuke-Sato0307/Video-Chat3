@@ -1,0 +1,330 @@
+/* ===== テーマ（青系・かっこいい UI） ===== */
+:root {
+  --bg-0: #060d1c;
+  --bg-1: #0b1f3a;
+  --bg-2: #102a52;
+  --accent: #2f7bff;
+  --accent-bright: #4f9dff;
+  --accent-glow: rgba(47, 123, 255, 0.45);
+  --text: #eaf2ff;
+  --text-dim: #9fb6db;
+  --danger: #ff4d5e;
+  --tile: #0a1830;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  /* スクロール不要：ビューポートに固定 */
+  height: 100dvh;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+    "Noto Sans JP", Meiryo, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 800px at 50% -10%, var(--bg-2), var(--bg-0));
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+}
+
+.screen[hidden] {
+  display: none;
+}
+
+/* ===== ロビー ===== */
+.lobby {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lobby-card {
+  width: min(420px, 100%);
+  padding: clamp(24px, 5vw, 40px);
+  background: linear-gradient(160deg, rgba(31, 64, 122, 0.55), rgba(10, 24, 48, 0.65));
+  border: 1px solid rgba(79, 157, 255, 0.25);
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 40px var(--accent-glow);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.logo-mark {
+  color: var(--accent-bright);
+  font-size: 28px;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+
+.logo h1 {
+  font-size: clamp(24px, 6vw, 30px);
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #cfe2ff, var(--accent-bright));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lobby-desc {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+
+#join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#passphrase {
+  width: 100%;
+  padding: 15px 16px;
+  font-size: 16px;
+  color: var(--text);
+  background: rgba(6, 13, 28, 0.7);
+  border: 1px solid rgba(79, 157, 255, 0.3);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#passphrase:focus {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+#passphrase::placeholder {
+  color: var(--text-dim);
+}
+
+#join-btn {
+  padding: 15px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.2s, opacity 0.2s;
+  box-shadow: 0 8px 24px var(--accent-glow);
+}
+
+#join-btn:hover {
+  box-shadow: 0 10px 30px var(--accent-glow);
+}
+
+#join-btn:active {
+  transform: scale(0.98);
+}
+
+#join-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.error {
+  margin-top: 14px;
+  color: var(--danger);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ===== 通話画面 ===== */
+.call {
+  flex-direction: column;
+}
+
+.grid {
+  flex: 1;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  /* コントロールバーぶんを引いた高さ */
+  min-height: 0;
+}
+
+/* 動的グリッド：人数に応じてちょうど画面に収める */
+.grid[data-count="1"] {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+.grid[data-count="2"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+.grid[data-count="3"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+/* 3人目は下段中央に */
+.grid[data-count="3"] .tile:nth-child(3) {
+  grid-column: 1 / span 2;
+  width: 50%;
+  justify-self: center;
+}
+.grid[data-count="4"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* 縦長画面（スマホ）では行方向に積む */
+@media (orientation: portrait) {
+  .grid[data-count="2"] {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .grid[data-count="3"] {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  .grid[data-count="3"] .tile:nth-child(3) {
+    grid-column: auto;
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+
+.tile {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--tile);
+  border: 1px solid rgba(79, 157, 255, 0.22);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  /* 自分の映像は鏡像に */
+}
+
+.tile.self video {
+  transform: scaleX(-1);
+}
+
+.tile .name {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: rgba(6, 13, 28, 0.6);
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+}
+
+.tile .muted-badge {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.tile.cam-off::after {
+  content: "📷 オフ";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  background: var(--tile);
+}
+
+/* コントロールバー */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom))
+    env(safe-area-inset-left);
+}
+
+.ctrl {
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--text);
+  background: rgba(31, 64, 122, 0.55);
+  border: 1px solid rgba(79, 157, 255, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.2s;
+}
+
+.ctrl:hover {
+  background: rgba(47, 123, 255, 0.4);
+}
+
+.ctrl:active {
+  transform: scale(0.94);
+}
+
+.ctrl.off {
+  background: rgba(255, 77, 94, 0.18);
+  border-color: rgba(255, 77, 94, 0.5);
+}
+
+.ctrl.danger {
+  background: linear-gradient(135deg, #ff4d5e, #ff7a86);
+  border: none;
+  color: #fff;
+}
+
+.ctrl.danger .ico {
+  transform: rotate(135deg);
+}
+
+.room-badge {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: rgba(6, 13, 28, 0.55);
+  border: 1px solid rgba(79, 157, 255, 0.2);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  max-width: 70vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
